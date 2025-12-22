@@ -27,6 +27,7 @@
             justify-content: center;
             color: #fff;
             font-family: 'Ma Shan Zheng', cursive;
+            transition: opacity 0.5s ease;
         }
 
         #rotate-screen .rotate-icon {
@@ -38,6 +39,50 @@
         #rotate-screen .rotate-text {
             font-size: 1.5rem;
             letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+
+        /* 旋转按钮样式 */
+        #rotate-btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-family: 'Ma Shan Zheng', cursive;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffd700 100%);
+            border: none;
+            border-radius: 50px;
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        #rotate-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(255, 107, 107, 0.6);
+        }
+
+        #rotate-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* 跳过按钮样式 */
+        #skip-rotate-btn {
+            padding: 10px 25px;
+            font-size: 0.9rem;
+            font-family: 'Ma Shan Zheng', cursive;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 30px;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        #skip-rotate-btn:hover {
+            border-color: #fff;
+            color: #fff;
         }
 
         @keyframes rotateHint {
@@ -255,6 +300,8 @@
     <div id="rotate-screen">
         <div class="rotate-icon">📱</div>
         <div class="rotate-text">请将手机横屏以获得最佳体验</div>
+        <button id="rotate-btn">旋转设备</button>
+        <button id="skip-rotate-btn">跳过提示</button>
     </div>
 
     <div id="start-screen">
@@ -713,6 +760,47 @@
                 stage = 4;
             }
         }
+
+        // 旋转设备按钮功能
+        document.getElementById('rotate-btn').addEventListener('click', async function() {
+            const rotateScreen = document.getElementById('rotate-screen');
+
+            // 尝试使用 Screen Orientation API 请求横屏
+            try {
+                // 先尝试请求全屏（部分浏览器需要全屏才能锁定方向）
+                if (document.documentElement.requestFullscreen) {
+                    await document.documentElement.requestFullscreen();
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    await document.documentElement.webkitRequestFullscreen();
+                }
+
+                // 然后尝试锁定为横屏
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape');
+                    // 成功后隐藏提示
+                    rotateScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        rotateScreen.style.display = 'none';
+                    }, 500);
+                } else {
+                    // 不支持锁定方向，显示手动提示
+                    alert('请手动将手机横屏以获得最佳体验 🔄');
+                }
+            } catch (err) {
+                console.log('屏幕旋转API不可用:', err);
+                // API不可用时，提示用户手动旋转
+                alert('请手动将手机横屏以获得最佳体验 🔄');
+            }
+        });
+
+        // 跳过旋转提示按钮功能
+        document.getElementById('skip-rotate-btn').addEventListener('click', function() {
+            const rotateScreen = document.getElementById('rotate-screen');
+            rotateScreen.style.opacity = '0';
+            setTimeout(() => {
+                rotateScreen.style.display = 'none';
+            }, 500);
+        });
 
         function applyShapeImmediate(shape) {
             const posAttr = particleGeometry.attributes.position;
