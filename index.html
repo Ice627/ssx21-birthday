@@ -389,7 +389,25 @@
         particleGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
         // 预加载纹理
-        const particleTexture = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/spark1.png');
+        // [修改] 使用 Base64 替换外部链接，确保粒子永远能加载出来
+        const sparkTextureBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAABJSURBVHgB7ddBCsAgDADB/v9P24M30VUI7WZAxK0eAjMzS2Y+8X08P7f3vj5/5wF4gF8A6gH9AuC9YF8AvBfsC4D3gn0B8F5wL4lYA92715wuAAAAAElFTkSuQmCC"; 
+        // 注意：上面这个是简易方块，建议用 Canvas 动态生成一个发光圆点，效果更好：
+        
+        function createSparkTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32; canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            grad.addColorStop(0.4, 'rgba(255, 255, 255, 0.5)');
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 32, 32);
+            return new THREE.CanvasTexture(canvas);
+        }
+        
+        // 替换原来的 TextureLoader
+        const particleTexture = createSparkTexture();
 
         const particleMaterial = new THREE.ShaderMaterial({
             uniforms: {
@@ -1026,3 +1044,4 @@
     </script>
 </body>
 </html>
+
