@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="screen-orientation" content="landscape">
+    <title>宋宋生日快乐 | Interactive 3D</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Montserrat:wght@300;700&display=swap');
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #050505;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        /* 横屏提示遮罩 */
+        #rotate-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-family: 'Ma Shan Zheng', cursive;
+        }
+
+        #rotate-screen .rotate-icon {
+            font-size: 60px;
+            animation: rotateHint 2s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        #rotate-screen .rotate-text {
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+        }
+
+        @keyframes rotateHint {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+        }
+
+        /* 移动端竖屏时显示提示 */
+        @media screen and (max-width: 900px) and (orientation: portrait) {
+            #rotate-screen {
+                display: flex;
+            }
+        }
+
+        #canvas-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+            opacity: 0; transition: opacity 1s ease-out;
+            will-change: opacity;
+        }
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10; pointer-events: none;
+        }
+
+        /* 启动页 */
+        #start-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 5, 5, 0.9); z-index: 100;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            pointer-events: auto; transition: opacity 0.8s ease-out;
+            will-change: opacity;
+        }
+
+
+        .gift-icon {
+            font-size: 80px; cursor: pointer;
+            animation: bounce 1.5s infinite;
+            filter: drop-shadow(0 0 20px rgba(255, 51, 102, 0.5));
+        }
+
+        .click-hint {
+            margin-top: 20px; color: #fff;
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            opacity: 0.8; letter-spacing: 2px;
+            font-family: 'Ma Shan Zheng', cursive;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* 顶部标题 - 固定金色 + 响应式字体 */
+        .header-text {
+            position: absolute; width: 100%; top: 12%; 
+            font-size: clamp(1.5rem, 5vw, 3.5rem);
+            font-weight: bold;
+            color: #ffd700;
+            background: none;
+            text-shadow:
+                0 0 10px rgba(255, 215, 0, 0.8),
+                0 0 20px rgba(255, 215, 0, 0.6),
+                0 0 30px rgba(255, 193, 7, 0.4),
+                0 0 40px rgba(255, 215, 0, 0.3);
+            opacity: 0; transition: opacity 1s;
+            text-align: center;
+            font-family: 'Ma Shan Zheng', cursive;
+            letter-spacing: clamp(2px, 1vw, 8px);
+            user-select: none;
+            caret-color: transparent;
+            outline: none;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        /* 雪花样式 */
+        .snowflake {
+            position: fixed;
+            color: #fff;
+            font-size: 1rem;
+            top: -20px;
+            z-index: 150;
+            pointer-events: none;
+            opacity: 0.8;
+            animation: snowfall linear infinite;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+        }
+
+        @keyframes snowfall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0.3;
+            }
+        }
+
+        /* 成就弹窗 - 响应式 */
+        .achievement-popup {
+            position: absolute; 
+            left: 50%; transform: translateX(-50%);
+            top: -100px; opacity: 0;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.6);
+            color: #ffd700;
+            padding: clamp(8px, 2vw, 12px) clamp(20px, 4vw, 35px);
+            border-radius: 50px;
+            font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            white-space: nowrap;
+            font-family: 'Ma Shan Zheng', cursive;
+            transition: top 1s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 1s ease;
+        }
+        .achievement-popup.show { top: 4%; opacity: 1; }
+
+        /* 留言板 - 响应式 */
+        #message-board {
+            position: absolute; left: 50%; top: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 85%; max-width: 500px;
+            background: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: clamp(20px, 4vw, 40px);
+            color: #fff;
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            line-height: 1.8;
+            opacity: 0;
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: auto;
+            display: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            font-family: 'Ma Shan Zheng', cursive;
+            text-align: center;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        /* 便签样式 - 响应式 */
+        #message-board.sticky-note {
+            left: 88%; right: auto;
+            top: 60%;
+            transform: translate(0, 0) scale(1) rotate(5deg);
+            width: clamp(120px, 20vw, 200px);
+            max-width: clamp(120px, 20vw, 200px);
+            padding: clamp(10px, 2vw, 20px);
+            background: linear-gradient(135deg, #fff9c4 0%, #fff59d 100%);
+            border-radius: 5px;
+            border: none;
+            color: #5d4037;
+            font-size: clamp(0.6rem, 1.5vw, 0.9rem);
+            line-height: 1.5;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.3), -1px -1px 5px rgba(255,255,255,0.5);
+            text-align: left;
+        }
+
+        #message-board.sticky-note::before {
+            content: '';
+            position: absolute;
+            top: -8px; left: 50%;
+            transform: translateX(-50%);
+            width: 40px; height: 15px;
+            background: rgba(200, 200, 200, 0.8);
+            border-radius: 2px;
+        }
+    </style>
+    
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
+
+    <!-- 雪花效果脚本 - 立即执行 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const snowflakeChars = ['❄', '❅', '❆', '✦', '✧', '•'];
+
+            function createSnowflake() {
+                const snowflake = document.createElement('div');
+                snowflake.className = 'snowflake';
+                snowflake.textContent = snowflakeChars[Math.floor(Math.random() * snowflakeChars.length)];
+                snowflake.style.left = Math.random() * 100 + 'vw';
+                snowflake.style.fontSize = (Math.random() * 0.8 + 0.5) + 'rem';
+                snowflake.style.opacity = Math.random() * 0.5 + 0.3;
+                const duration = Math.random() * 5 + 5;
+                snowflake.style.animationDuration = duration + 's';
+                document.body.appendChild(snowflake);
+
+                // 动画结束后移除雪花
+                setTimeout(() => {
+                    if(snowflake.parentNode) {
+                        snowflake.parentNode.removeChild(snowflake);
+                    }
+                }, duration * 1000);
+            }
+
+            // 立即开始创建雪花
+            setInterval(createSnowflake, 200);
+            // 一开始先创建一些雪花
+            for(let i = 0; i < 15; i++) {
+                setTimeout(createSnowflake, i * 50);
+            }
+        });
+    </script>
+</head>
+<body>
+
+    <!-- 横屏提示 -->
+    <div id="rotate-screen">
+        <div class="rotate-icon">📱</div>
+        <div class="rotate-text">请将手机横屏以获得最佳体验</div>
+    </div>
+
+    <div id="start-screen">
+        <div class="gift-icon">🎁</div>
+        <div class="click-hint">点击拆开生日礼物</div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer">
+        <div id="header" class="header-text">宋宋生日快乐呀</div>
+        <div id="achievement" class="achievement-popup">🏆解锁成就：”21岁啦！“</div>
+        <div id="message-board"></div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import TWEEN from 'three/addons/libs/tween.module.js';
+
+        const CONFIG = {
+            particleCount: 7500,
+            colors: {
+                nebulaCore: 0xffaa00, 
+                nebulaEdge: 0x0000ff, 
+                cakeCore: 0xffe4b5,   // 奶油色蛋糕中心
+                cakeEdge: 0xff6b6b,   // 草莓粉边缘
+                candleWax: 0xffffff,  // 蜡烛身白色
+                flame: 0xffd700       // 火焰金黄色
+            },
+            bloomStrength: 1.5
+        };
+
+        let stage = 0; 
+        let isTransitioning = false;
+        let fireworks = []; 
+        let flameSprites = []; // 存储火焰图标数组（每个数字一个火焰）
+        let messageMinimized = false; // 留言板是否已缩小
+
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050505, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 3, 19); 
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.enablePan = false;
+        controls.autoRotate = false;
+
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0.1;
+        bloomPass.strength = CONFIG.bloomStrength;
+        bloomPass.radius = 0.4;
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // --- 粒子系统 ---
+        const particleGeometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(CONFIG.particleCount * 3);
+        const colors = new Float32Array(CONFIG.particleCount * 3);
+        const sizes = new Float32Array(CONFIG.particleCount);
+
+        for (let i = 0; i < CONFIG.particleCount; i++) {
+            positions[i*3] = (Math.random()-0.5)*100;
+            positions[i*3+1] = (Math.random()-0.5)*100;
+            positions[i*3+2] = (Math.random()-0.5)*100;
+            sizes[i] = 0;
+        }
+
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        particleGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+        // 预加载纹理
+        const particleTexture = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/spark1.png');
+
+        const particleMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                pointTexture: { value: particleTexture },
+                uTime: { value: 0 },
+                uMouse: { value: new THREE.Vector3(9999, 9999, 9999) },
+                uInteractionRadius: { value: 4.0 },
+                uGlobalSize: { value: 1.0 }
+            },
+            vertexShader: `
+                attribute float size;
+                attribute vec3 color;
+                varying vec3 vColor;
+                uniform float uTime;
+                uniform vec3 uMouse;
+                uniform float uInteractionRadius;
+                uniform float uGlobalSize;
+                void main() {
+                    vColor = color;
+                    vec3 pos = position;
+                    float dist = distance(pos, uMouse);
+                    if (dist < uInteractionRadius) {
+                        vec3 dir = normalize(pos - uMouse);
+                        float force = (uInteractionRadius - dist) * 1.5;
+                        pos += dir * force;
+                    }
+                    pos.y += sin(uTime * 1.5 + pos.x * 0.5) * 0.05;
+                    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                    gl_PointSize = size * uGlobalSize * (250.0 / -mvPosition.z);
+                    gl_Position = projectionMatrix * mvPosition;
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D pointTexture;
+                varying vec3 vColor;
+                void main() {
+                    gl_FragColor = vec4(vColor, 1.0);
+                    gl_FragColor = gl_FragColor * texture2D(pointTexture, gl_PointCoord);
+                    if (gl_FragColor.a < 0.1) discard;
+                }
+            `,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            transparent: true
+        });
+
+        const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+        scene.add(particleSystem);
+
+        // 预先生成星云数据，减少点击时的计算
+        let preloadedNebulaData = null;
+
+        // --- 功能函数 ---
+        
+        function getRGB(hex) {
+            const c = new THREE.Color(hex);
+            return [c.r, c.g, c.b];
+        }
+
+        // 创建火焰纹理
+        function createFlameTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            // 绘制火焰形状
+            ctx.beginPath();
+            ctx.moveTo(32, 60);
+            ctx.bezierCurveTo(10, 50, 10, 10, 32, 2);
+            ctx.bezierCurveTo(54, 10, 54, 50, 32, 60);
+            
+            const grd = ctx.createRadialGradient(32,40,5, 32,40,30);
+            grd.addColorStop(0, '#fff');      // 核心白
+            grd.addColorStop(0.3, '#ffaa00'); // 中层金
+            grd.addColorStop(0.7, '#ff0000'); // 外层红
+            grd.addColorStop(1, 'rgba(0,0,0,0)');
+            
+            ctx.fillStyle = grd;
+            ctx.fill();
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // 1. 生成星云
+        function generateNebulaShape() {
+            const arr = [];
+            const cols = [];
+            const coreCol = getRGB(CONFIG.colors.nebulaCore);
+            const edgeCol = getRGB(CONFIG.colors.nebulaEdge);
+            const maxRadius = 14; 
+            for(let i=0; i<CONFIG.particleCount; i++) {
+                const r = Math.pow(Math.random(), 2.5) * maxRadius; 
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((Math.random() * 2) - 1);
+                arr.push(r * Math.sin(phi) * Math.cos(theta));
+                arr.push(r * Math.sin(phi) * Math.sin(theta));
+                arr.push(r * Math.cos(phi));
+                
+                const t = r / maxRadius;
+                cols.push(coreCol[0]*(1-t)+edgeCol[0]*t, coreCol[1]*(1-t)+edgeCol[1]*t, coreCol[2]*(1-t)+edgeCol[2]*t);
+            }
+            return { positions: arr, colors: cols };
+        }
+
+        // 2. 生成蛋糕 (更清晰的形态)
+        function generateCakeShape() {
+            const arr = [];
+            const cols = [];
+            const coreCol = getRGB(CONFIG.colors.cakeCore);
+            const edgeCol = getRGB(CONFIG.colors.cakeEdge);
+            const waxCol = getRGB(CONFIG.colors.candleWax);
+
+            const numCount = 1800; 
+            const cakeCount = CONFIG.particleCount - numCount;
+
+            // 底层蛋糕 - 更清晰的圆柱形
+            const bottomLayerCount = Math.floor(cakeCount * 0.5);
+            for(let i=0; i<bottomLayerCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 2.8 + Math.random() * 1.2; // 更集中的半径范围
+                const height = Math.random() * 1.8 - 1.8; // 底层高度 -1.8 到 0
+
+                // 增加边缘粒子密度
+                const r = Math.random() > 0.3 ? radius : Math.random() * 3.5;
+
+                arr.push(r * Math.cos(angle), height, r * Math.sin(angle));
+
+                // 颜色渐变：从中心到边缘
+                const dist = r / 4.0;
+                const t = Math.min(dist, 1.0);
+                cols.push(
+                    coreCol[0]*(1-t)+edgeCol[0]*t,
+                    coreCol[1]*(1-t)+edgeCol[1]*t,
+                    coreCol[2]*(1-t)+edgeCol[2]*t
+                );
+            }
+
+            // 顶层蛋糕 - 更小的圆柱形
+            const topLayerCount = Math.floor(cakeCount * 0.35);
+            for(let i=0; i<topLayerCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 1.8 + Math.random() * 0.8; // 顶层更小
+                const height = Math.random() * 1.2; // 顶层高度 0 到 1.2
+
+                // 增加边缘粒子密度
+                const r = Math.random() > 0.3 ? radius : Math.random() * 2.2;
+
+                arr.push(r * Math.cos(angle), height, r * Math.sin(angle));
+
+                const dist = r / 2.5;
+                const t = Math.min(dist, 1.0);
+                cols.push(
+                    coreCol[0]*(1-t)+edgeCol[0]*t,
+                    coreCol[1]*(1-t)+edgeCol[1]*t,
+                    coreCol[2]*(1-t)+edgeCol[2]*t
+                );
+            }
+
+            // 装饰层 - 蛋糕顶部边缘装饰
+            const decorCount = cakeCount - bottomLayerCount - topLayerCount;
+            for(let i=0; i<decorCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                // 在两层边缘添加装饰
+                const isBottomEdge = Math.random() > 0.5;
+                let r, y;
+                if(isBottomEdge) {
+                    r = 3.8 + Math.random() * 0.3;
+                    y = -0.1 + Math.random() * 0.2;
+                } else {
+                    r = 2.4 + Math.random() * 0.3;
+                    y = 1.1 + Math.random() * 0.2;
+                }
+
+                arr.push(r * Math.cos(angle), y, r * Math.sin(angle));
+                cols.push(
+                    coreCol[0]*0.8+edgeCol[0]*0.2,
+                    coreCol[1]*0.8+edgeCol[1]*0.2,
+                    coreCol[2]*0.8+edgeCol[2]*0.2
+                );
+            }
+
+            // 数字 "21" (白色) - 位置调整到蛋糕顶部
+            const textPoints = getTextPoints("21");
+            for(let i=0; i<numCount; i++) {
+                const p = textPoints[i % textPoints.length];
+                const x = p.x * 0.025;
+                const y = p.y * 0.025 + 1.8;
+                const z = (Math.random()-0.5)*0.25;
+                arr.push(x, y, z);
+                cols.push(...waxCol); 
+            }
+            return { positions: arr, colors: cols };
+        }
+
+        function getTextPoints(text) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 100; canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            ctx.font = 'bold 80px Arial';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 50, 50);
+            const data = ctx.getImageData(0,0,100,100).data;
+            const points = [];
+            for(let y=0; y<100; y+=2) {
+                for(let x=0; x<100; x+=2) {
+                    if(data[(y*100+x)*4 + 3] > 128) points.push({x: x-50, y: -(y-50)});
+                }
+            }
+            return points;
+        }
+
+        // 3. 点燃状态 (Lit) - 保持原有颜色，火焰效果由Sprite显示
+        function generateLitCakeState() {
+            const currentPos = particleGeometry.attributes.position.array;
+            const currentCols = particleGeometry.attributes.color.array;
+
+            const newPos = [];
+            const newCols = [];
+            
+            for(let i=0; i < CONFIG.particleCount; i++) {
+                let x = currentPos[i*3];
+                let y = currentPos[i*3+1];
+                let z = currentPos[i*3+2];
+                // 保持原有颜色，不再变黄
+                let r = currentCols[i*3];
+                let g = currentCols[i*3+1];
+                let b = currentCols[i*3+2];
+
+                newPos.push(x, y, z);
+                newCols.push(r, g, b);
+            }
+            return { positions: newPos, colors: newCols };
+        }
+
+        // --- 交互流程 ---
+        document.getElementById('start-screen').addEventListener('click', function() {
+            this.style.opacity = '0';
+            // 使用 requestAnimationFrame 确保过渡更平滑
+            setTimeout(() => {
+                requestAnimationFrame(() => {
+                    this.style.display = 'none';
+                    enterNebulaStage();
+                });
+            }, 800);
+        });
+
+        window.addEventListener('click', onCanvasClick);
+
+        function enterNebulaStage() {
+            document.getElementById('canvas-container').style.opacity = '1';
+            const sizes = particleGeometry.attributes.size.array;
+            for(let i=0; i<sizes.length; i++) sizes[i] = Math.random();
+            particleGeometry.attributes.size.needsUpdate = true;
+            
+            // 使用预加载的星云数据
+            applyShapeImmediate(preloadedNebulaData);
+
+            scene.scale.set(0.1, 0.1, 0.1);
+            new TWEEN.Tween(scene.scale).to({x:1, y:1, z:1}, 1500).easing(TWEEN.Easing.Elastic.Out).start();
+
+
+            stage = 1;
+        }
+
+        function onCanvasClick(e) {
+            if (e.target.closest('.gift-icon') || e.target.closest('#start-screen')) return;
+            if (isTransitioning || stage === 0) return;
+
+            if (stage === 1) {
+                // 星云 -> 蛋糕
+                isTransitioning = true;
+                const cakeData = generateCakeShape();
+                transitionParticles(cakeData, 2000);
+                
+                // 恢复之前的清晰度（不要缩太小）
+                new TWEEN.Tween(particleMaterial.uniforms.uGlobalSize).to({value: 0.8}, 2000).start();
+                new TWEEN.Tween(bloomPass).to({strength: 0.8, radius: 0.3}, 2000).start();
+                
+                setTimeout(() => {
+                    document.getElementById('header').style.opacity = 1;
+                    stage = 2;
+                    isTransitioning = false;
+                }, 2000);
+
+            } else if (stage === 2) {
+                // 点火
+                isTransitioning = true;
+                const litData = generateLitCakeState();
+                transitionParticles(litData, 500); 
+
+                // *** 显示火焰图标 (Sprite) - 每个数字一个火焰 ***
+                const map = createFlameTexture();
+
+                // 数字 "2" 的火焰 (左边)
+                const material1 = new THREE.SpriteMaterial({ map: map, blending: THREE.AdditiveBlending });
+                const flame1 = new THREE.Sprite(material1);
+                flame1.position.set(-0.65, 3.3, 0);  // 数字2的顶部
+                flame1.scale.set(0, 0, 1);
+                scene.add(flame1);
+                flameSprites.push(flame1);
+
+                // 数字 "1" 的火焰 (右边)
+                const material2 = new THREE.SpriteMaterial({ map: map, blending: THREE.AdditiveBlending });
+                const flame2 = new THREE.Sprite(material2);
+                flame2.position.set(0.65, 3.3, 0);   // 数字1的顶部
+                flame2.scale.set(0, 0, 1);
+                scene.add(flame2);
+                flameSprites.push(flame2);
+
+                // 火焰弹出的动画 - 较小的尺寸
+                flameSprites.forEach((flame, idx) => {
+                    new TWEEN.Tween(flame.scale)
+                        .to({x: 0.5, y: 0.7, z: 1}, 800)
+                        .delay(idx * 100) // 稍微错开时间
+                        .easing(TWEEN.Easing.Back.Out)
+                        .start();
+                });
+
+                // 光晕爆闪
+                new TWEEN.Tween(bloomPass).to({ strength: 2.5 }, 200).yoyo(true).repeat(1).to({ strength: 1.2 }, 1000).start();
+                
+                // 烟花 - 从两侧同时抛物线发射（短暂出现）
+                let fwCount = 0;
+                const fwInterval = setInterval(() => {
+                    launchParabolicFirework(-1); // 左侧
+                    launchParabolicFirework(1);  // 右侧
+                    fwCount++;
+                    if(fwCount > 2) clearInterval(fwInterval); // 只发射3轮
+                }, 300);
+
+                const ach = document.getElementById('achievement');
+                ach.classList.add('show');
+                setTimeout(() => { ach.classList.remove('show'); }, 4000);
+
+                stage = 3;
+                isTransitioning = false;
+
+            } else if (stage === 3) {
+                stage = 4;
+                const msgBoard = document.getElementById('message-board');
+                msgBoard.style.display = 'block';
+                void msgBoard.offsetWidth; 
+                msgBoard.style.opacity = '1';
+                msgBoard.style.transform = 'translate(-50%, -50%) scale(1)';
+                const text = "亲爱的宋宋，\n\n生日快乐！\n愿你的世界永远充满光亮，\n愿你所有的梦想都开花结果。\n21岁，精彩才刚刚开始！\n\nBest Wishes. ✨";
+                let i = 0;
+                msgBoard.innerHTML = "";
+                const typeWriter = () => {
+                    if (i < text.length) {
+                        msgBoard.innerHTML += text.charAt(i) === '\n' ? '<br/>' : text.charAt(i);
+                        i++;
+                        setTimeout(typeWriter, 50);
+                    }
+                };
+                typeWriter();
+            } else if (stage === 4) {
+                // 将留言板缩小为便签
+                const msgBoard = document.getElementById('message-board');
+                msgBoard.classList.add('sticky-note');
+                messageMinimized = true;
+                stage = 5;
+            } else if (stage === 5 && e.target.closest('#message-board')) {
+                // 点击便签恢复为完整留言板
+                const msgBoard = document.getElementById('message-board');
+                msgBoard.classList.remove('sticky-note');
+                messageMinimized = false;
+                stage = 4;
+            }
+        }
+
+        function applyShapeImmediate(shape) {
+            const posAttr = particleGeometry.attributes.position;
+            const colAttr = particleGeometry.attributes.color;
+            for(let i=0; i<CONFIG.particleCount; i++) {
+                posAttr.array[i*3] = shape.positions[i*3];
+                posAttr.array[i*3+1] = shape.positions[i*3+1];
+                posAttr.array[i*3+2] = shape.positions[i*3+2];
+                colAttr.array[i*3] = shape.colors[i*3];
+                colAttr.array[i*3+1] = shape.colors[i*3+1];
+                colAttr.array[i*3+2] = shape.colors[i*3+2];
+            }
+            posAttr.needsUpdate = true;
+            colAttr.needsUpdate = true;
+        }
+
+        function transitionParticles(targetShape, duration) {
+            const posAttr = particleGeometry.attributes.position;
+            const colAttr = particleGeometry.attributes.color;
+            const startPositions = Float32Array.from(posAttr.array);
+            const startColors = Float32Array.from(colAttr.array);
+            const obj = { t: 0 };
+            new TWEEN.Tween(obj)
+                .to({ t: 1 }, duration)
+                .easing(TWEEN.Easing.Quintic.InOut)
+                .onUpdate(() => {
+                    for (let i = 0; i < CONFIG.particleCount; i++) {
+                        const idx = i * 3;
+                        posAttr.array[idx] = startPositions[idx] * (1-obj.t) + targetShape.positions[idx] * obj.t;
+                        posAttr.array[idx+1] = startPositions[idx+1] * (1-obj.t) + targetShape.positions[idx+1] * obj.t;
+                        posAttr.array[idx+2] = startPositions[idx+2] * (1-obj.t) + targetShape.positions[idx+2] * obj.t;
+                        
+                        if(targetShape.colors) {
+                            colAttr.array[idx] = startColors[idx] * (1-obj.t) + targetShape.colors[idx] * obj.t;
+                            colAttr.array[idx+1] = startColors[idx+1] * (1-obj.t) + targetShape.colors[idx+1] * obj.t;
+                            colAttr.array[idx+2] = startColors[idx+2] * (1-obj.t) + targetShape.colors[idx+2] * obj.t;
+                        }
+                    }
+                    posAttr.needsUpdate = true;
+                    if(targetShape.colors) colAttr.needsUpdate = true;
+                }).start();
+        }
+
+        // 抛物线烟花 - side: -1 左侧, 1 右侧
+        function launchParabolicFirework(side) {
+            const fwCount = 50; // 减少粒子数量
+            const fwGeo = new THREE.BufferGeometry();
+            const fwPos = []; const fwVel = []; const fwCol = [];
+
+            // 起始位置：屏幕边缘底部
+            const startX = side * 10;
+            const startY = -6;
+
+            // 目标位置：屏幕中央偏上区域（随机）
+            const targetX = (Math.random() - 0.5) * 6;
+            const targetY = 2 + Math.random() * 3;
+
+            // 随机颜色组合
+            const colorPalettes = [
+                [0xff1744, 0xff6f00, 0xffd600], // 红橙黄
+                [0x00e5ff, 0x00b0ff, 0x2979ff], // 蓝色系
+                [0xf50057, 0xd500f9, 0x651fff], // 粉紫系
+                [0x00e676, 0x1de9b6, 0x64ffda], // 绿青系
+                [0xffd700, 0xffab00, 0xff6d00], // 金橙系
+            ];
+            const palette = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
+
+            for(let i=0; i<fwCount; i++) {
+                fwPos.push(startX, startY, (Math.random() - 0.5) * 0.5);
+                // 初始速度为0，使用抛物线轨迹
+                fwVel.push(0, 0, 0);
+                const color = new THREE.Color(palette[Math.floor(Math.random() * palette.length)]);
+                fwCol.push(color.r, color.g, color.b);
+            }
+
+            fwGeo.setAttribute('position', new THREE.Float32BufferAttribute(fwPos, 3));
+            fwGeo.setAttribute('color', new THREE.Float32BufferAttribute(fwCol, 3));
+            const fwMat = new THREE.PointsMaterial({
+                size: 0.18, // 更小的粒子
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 1
+            });
+            const fwSystem = new THREE.Points(fwGeo, fwMat);
+            scene.add(fwSystem);
+
+            fireworks.push({
+                mesh: fwSystem,
+                vel: fwVel,
+                geo: fwGeo,
+                mat: fwMat,
+                age: 0,
+                exploded: false,
+                // 抛物线参数
+                startX: startX,
+                startY: startY,
+                targetX: targetX,
+                targetY: targetY,
+                side: side,
+                flightDuration: 35 + Math.random() * 10, // 更短的飞行时间
+                isParabolic: true
+            });
+        }
+
+        function updateFireworks() {
+            for(let i = fireworks.length - 1; i >= 0; i--) {
+                const fw = fireworks[i];
+                fw.age++;
+                const positions = fw.geo.attributes.position.array;
+
+                if(fw.isParabolic && !fw.exploded) {
+                    // 抛物线飞行阶段
+                    const t = fw.age / fw.flightDuration;
+
+                    if(t < 1) {
+                        // 计算抛物线位置
+                        const x = fw.startX + (fw.targetX - fw.startX) * t;
+                        // 抛物线公式: y = startY + (targetY - startY) * t + arcHeight * 4 * t * (1-t)
+                        const arcHeight = 1.5; // 更小的弧度高度
+                        const y = fw.startY + (fw.targetY - fw.startY) * t + arcHeight * 4 * t * (1-t);
+                        const z = 0;
+
+                        // 所有粒子聚集在一起飞行（带微小散布）
+                        for(let j=0; j<positions.length/3; j++) {
+                            positions[j*3] = x + (Math.random() - 0.5) * 0.2;
+                            positions[j*3+1] = y + (Math.random() - 0.5) * 0.2;
+                            positions[j*3+2] = z + (Math.random() - 0.5) * 0.2;
+                        }
+
+                        // 添加拖尾效果 - 减小粒子大小
+                        fw.mat.size = 0.2 - t * 0.08;
+                    } else {
+                        // 爆炸！
+                        fw.exploded = true;
+                        fw.mat.size = 0.25;
+
+                        // 给每个粒子设置爆炸速度（球形扩散）- 更小的扩散
+                        for(let j=0; j<positions.length/3; j++) {
+                            const theta = Math.random() * Math.PI * 2;
+                            const phi = Math.acos((Math.random() * 2) - 1);
+                            const speed = 0.1 + Math.random() * 0.12;
+                            fw.vel[j*3] = Math.sin(phi) * Math.cos(theta) * speed;
+                            fw.vel[j*3+1] = Math.sin(phi) * Math.sin(theta) * speed;
+                            fw.vel[j*3+2] = Math.cos(phi) * speed * 0.3;
+                        }
+                    }
+                } else if(fw.exploded) {
+                    // 爆炸后的扩散和下落
+                    for(let j=0; j<positions.length/3; j++) {
+                        positions[j*3] += fw.vel[j*3];
+                        positions[j*3+1] += fw.vel[j*3+1];
+                        positions[j*3+2] += fw.vel[j*3+2];
+                        // 重力
+                        fw.vel[j*3+1] -= 0.006;
+                        // 阻力
+                        fw.vel[j*3] *= 0.97;
+                        fw.vel[j*3+1] *= 0.97;
+                        fw.vel[j*3+2] *= 0.97;
+                    }
+                    // 更快淡出
+                    fw.mat.opacity -= 0.025;
+                }
+
+                fw.geo.attributes.position.needsUpdate = true;
+
+                if(fw.mat.opacity <= 0) {
+                    scene.remove(fw.mesh);
+                    fw.geo.dispose();
+                    fw.mat.dispose();
+                    fireworks.splice(i, 1);
+                }
+            }
+        }
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(9999, 9999);
+        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const target = new THREE.Vector3();
+            raycaster.ray.intersectPlane(plane, target);
+            particleMaterial.uniforms.uMouse.value.copy(target);
+        });
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            TWEEN.update();
+            controls.update();
+            updateFireworks();
+            // 火焰呼吸效果 - 多个火焰
+            flameSprites.forEach((flame, idx) => {
+                flame.material.rotation = Math.sin(time*0.005 + idx)*0.15;
+                const scaleBase = 0.5;
+                flame.scale.set(
+                    scaleBase + Math.sin(time*0.012 + idx*0.5)*0.05,
+                    scaleBase*1.4 + Math.cos(time*0.012 + idx*0.5)*0.06,
+                    1
+                );
+            });
+            particleMaterial.uniforms.uTime.value = time * 0.001;
+            composer.render();
+        }
+
+        // 预渲染多帧，减少首次显示时的卡顿
+        preloadedNebulaData = generateNebulaShape();
+
+        // 预热 WebGL - 渲染几帧
+        for(let i = 0; i < 3; i++) {
+            composer.render();
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
