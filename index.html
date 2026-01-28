@@ -93,7 +93,6 @@
             will-change: opacity;
         }
 
-
         .gift-icon {
             font-size: 80px; cursor: pointer;
             animation: bounce 1.5s infinite;
@@ -283,12 +282,12 @@
 
         /* 便签样式 - 竖屏手机优化 */
         #message-board.sticky-note {
-            left: 50%;
+            left: 46%;
             right: auto;
-            top: 83%;
+            top: 70%;
             bottom: auto;
-            transform: translateX(-50%) rotate(-2deg);
-            width: clamp(200px, 56vw, 320px);
+            transform: translateX(-50%) rotate(-15deg) !important;
+            width: clamp(200px, 56vw, 240px);
             max-width: 90vw;
             padding: clamp(15px, 4vw, 25px);
             background: linear-gradient(145deg, #fff9c4 0%, #fff59d 50%, #ffee58 100%);
@@ -301,14 +300,16 @@
                 -2px -2px 8px rgba(255,255,255,0.5),
                 inset 0 0 30px rgba(255, 249, 196, 0.5);
             text-align: left;
+            z-index: 9;
         }
-
         #message-board.sticky-note::before {
             content: '';
             position: absolute;
-            top: -10px; left: 50%;
+            top: -10px;
+            left: 50%;
             transform: translateX(-50%);
-            width: 50px; height: 18px;
+            width: 50px;
+            height: 18px;
             background: linear-gradient(180deg, rgba(180, 180, 180, 0.9), rgba(150, 150, 150, 0.8));
             border-radius: 3px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
@@ -321,6 +322,86 @@
             left: 50%;
             transform: translateX(-50%);
             font-size: 1.2rem;
+        }
+
+        /* 照片展示样式 - 书页重叠效果 */
+        #photo-card {
+            position: absolute;
+            left: 52%;
+            top: 70%;
+            transform: translateX(calc(-50% + 80px)) rotate(15deg);
+            height: auto;
+            padding: clamp(12px, 3vw, 18px);
+            background: linear-gradient(145deg, #f5f5f5 0%, #e8e8e8 50%, #d0d0d0 100%);
+            border: none;
+            box-shadow:
+                8px 8px 20px rgba(0,0,0,0.35),
+                -2px -2px 8px rgba(255,255,255,0.5),
+                inset 0 0 30px rgba(245, 245, 245, 0.5);
+            opacity: 0;
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: auto;
+            display: none;
+            cursor: pointer;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        #photo-card.show {
+            display: block;
+            opacity: 1;
+        }
+
+        #photo-card.expanded {
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) rotate(0deg) !important;
+            width: auto;
+            max-width: 70%;
+            max-height: 80vh;
+            padding: clamp(15px, 3vw, 25px);
+            z-index: 11;
+        }
+
+        #photo-card.expanded img {
+            max-width: 100%;
+            max-height: 70vh;
+            width: auto;
+            height: auto;
+        }
+
+        #photo-card::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 18px;
+            background: linear-gradient(180deg, rgba(180, 180, 180, 0.9), rgba(150, 150, 150, 0.8));
+            border-radius: 3px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        #photo-card::after {
+            content: '📎';
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.2rem;
+        }
+
+        #photo-card img {
+            height: clamp(67px, 13vw, 220px);
+            width: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: block;
+        }
+
+        #photo-card .photo-caption {
+            display: none;
         }
     </style>
 
@@ -345,7 +426,6 @@
                 snowflake.style.animationDuration = duration + 's';
                 document.body.appendChild(snowflake);
 
-                // 动画结束后移除雪花
                 setTimeout(() => {
                     if(snowflake.parentNode) {
                         snowflake.parentNode.removeChild(snowflake);
@@ -353,9 +433,7 @@
                 }, duration * 1000);
             }
 
-            // 立即开始创建雪花
             setInterval(createSnowflake, 200);
-            // 一开始先创建一些雪花
             for(let i = 0; i < 15; i++) {
                 setTimeout(createSnowflake, i * 50);
             }
@@ -383,6 +461,10 @@
     <div id="trophy-btn">🏆</div>
     <div id="achievement" class="achievement-popup">🏆解锁成就："21岁啦！"</div>
     <div id="message-board"></div>
+    <div id="photo-card">
+        <img src="together.jpg" alt="生日合照">
+        <div class="photo-caption">💝 美好的回忆 💝</div>
+    </div>
 </div>
 
 <script type="module">
@@ -398,25 +480,24 @@
         colors: {
             nebulaCore: 0xffaa00,
             nebulaEdge: 0x0000ff,
-            cakeCore: 0xffe4b5,   // 奶油色蛋糕中心
-            cakeEdge: 0xff6b6b,   // 草莓粉边缘
-            candleWax: 0xffffff,  // 蜡烛身白色
-            flame: 0xffd700       // 火焰金黄色
+            cakeCore: 0xffe4b5,
+            cakeEdge: 0xff6b6b,
+            candleWax: 0xffffff,
+            flame: 0xffd700
         },
         bloomStrength: 1.5
     };
 
     let stage = 0;
     let isTransitioning = false;
-    let flameSprites = []; // 存储火焰图标数组（每个数字一个火焰）
-    let messageMinimized = false; // 留言板是否已缩小
+    let flameSprites = [];
+    let messageMinimized = false;
 
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x050505, 0.02);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-    // 根据屏幕比例动态调整相机位置，竖屏时拉远
     const isPortrait = window.innerHeight > window.innerWidth;
     camera.position.set(0, 3, isPortrait ? 32 : 19);
 
@@ -440,7 +521,6 @@
     composer.addPass(renderScene);
     composer.addPass(bloomPass);
 
-    // --- 粒子系统 ---
     const particleGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(CONFIG.particleCount * 3);
     const colors = new Float32Array(CONFIG.particleCount * 3);
@@ -457,11 +537,6 @@
     particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     particleGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
-    // 预加载纹理
-    // [修改] 使用 Base64 替换外部链接，确保粒子永远能加载出来
-    const sparkTextureBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAABJSURBVHgB7ddBCsAgDADB/v9P24M30VUI7WZAxK0eAjMzS2Y+8X08P7f3vj5/5wF4gF8A6gH9AuC9YF8AvBfsC4D3gn0B8F5wL4lYA92715wuAAAAAElFTkSuQmCC";
-    // 注意：上面这个是简易方块，建议用 Canvas 动态生成一个发光圆点，效果更好：
-
     function createSparkTexture() {
         const canvas = document.createElement('canvas');
         canvas.width = 32; canvas.height = 32;
@@ -475,7 +550,6 @@
         return new THREE.CanvasTexture(canvas);
     }
 
-    // 替换原来的 TextureLoader
     const particleTexture = createSparkTexture();
 
     const particleMaterial = new THREE.ShaderMaterial({
@@ -526,32 +600,27 @@
     const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
     scene.add(particleSystem);
 
-    // 预先生成星云数据，减少点击时的计算
     let preloadedNebulaData = null;
-
-    // --- 功能函数 ---
 
     function getRGB(hex) {
         const c = new THREE.Color(hex);
         return [c.r, c.g, c.b];
     }
 
-    // 创建火焰纹理
     function createFlameTexture() {
         const canvas = document.createElement('canvas');
         canvas.width = 64; canvas.height = 64;
         const ctx = canvas.getContext('2d');
 
-        // 绘制火焰形状
         ctx.beginPath();
         ctx.moveTo(32, 60);
         ctx.bezierCurveTo(10, 50, 10, 10, 32, 2);
         ctx.bezierCurveTo(54, 10, 54, 50, 32, 60);
 
         const grd = ctx.createRadialGradient(32,40,5, 32,40,30);
-        grd.addColorStop(0, '#fff');      // 核心白
-        grd.addColorStop(0.3, '#ffaa00'); // 中层金
-        grd.addColorStop(0.7, '#ff0000'); // 外层红
+        grd.addColorStop(0, '#fff');
+        grd.addColorStop(0.3, '#ffaa00');
+        grd.addColorStop(0.7, '#ff0000');
         grd.addColorStop(1, 'rgba(0,0,0,0)');
 
         ctx.fillStyle = grd;
@@ -559,13 +628,11 @@
         return new THREE.CanvasTexture(canvas);
     }
 
-    // 1. 生成星云
     function generateNebulaShape() {
         const arr = [];
         const cols = [];
         const coreCol = getRGB(CONFIG.colors.nebulaCore);
         const edgeCol = getRGB(CONFIG.colors.nebulaEdge);
-        // 根据屏幕比例调整星云大小，竖屏时缩小
         const isPortrait = window.innerHeight > window.innerWidth;
         const maxRadius = isPortrait ? 8 : 14;
         for(let i=0; i<CONFIG.particleCount; i++) {
@@ -582,7 +649,6 @@
         return { positions: arr, colors: cols };
     }
 
-    // 2. 生成蛋糕 (更清晰的形态)
     function generateCakeShape() {
         const arr = [];
         const cols = [];
@@ -593,19 +659,16 @@
         const numCount = 1800;
         const cakeCount = CONFIG.particleCount - numCount;
 
-        // 底层蛋糕 - 更清晰的圆柱形
         const bottomLayerCount = Math.floor(cakeCount * 0.5);
         for(let i=0; i<bottomLayerCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const radius = 2.8 + Math.random() * 1.2; // 更集中的半径范围
-            const height = Math.random() * 1.8 - 1.8; // 底层高度 -1.8 到 0
+            const radius = 2.8 + Math.random() * 1.2;
+            const height = Math.random() * 1.8 - 1.8;
 
-            // 增加边缘粒子密度
             const r = Math.random() > 0.3 ? radius : Math.random() * 3.5;
 
             arr.push(r * Math.cos(angle), height, r * Math.sin(angle));
 
-            // 颜色渐变：从中心到边缘
             const dist = r / 4.0;
             const t = Math.min(dist, 1.0);
             cols.push(
@@ -615,14 +678,12 @@
             );
         }
 
-        // 顶层蛋糕 - 更小的圆柱形
         const topLayerCount = Math.floor(cakeCount * 0.35);
         for(let i=0; i<topLayerCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const radius = 1.8 + Math.random() * 0.8; // 顶层更小
-            const height = Math.random() * 1.2; // 顶层高度 0 到 1.2
+            const radius = 1.8 + Math.random() * 0.8;
+            const height = Math.random() * 1.2;
 
-            // 增加边缘粒子密度
             const r = Math.random() > 0.3 ? radius : Math.random() * 2.2;
 
             arr.push(r * Math.cos(angle), height, r * Math.sin(angle));
@@ -636,11 +697,9 @@
             );
         }
 
-        // 装饰层 - 蛋糕顶部边缘装饰
         const decorCount = cakeCount - bottomLayerCount - topLayerCount;
         for(let i=0; i<decorCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            // 在两层边缘添加装饰
             const isBottomEdge = Math.random() > 0.5;
             let r, y;
             if(isBottomEdge) {
@@ -659,7 +718,6 @@
             );
         }
 
-        // 数字 "21" (白色) - 位置调整到蛋糕顶部
         const textPoints = getTextPoints("21");
         for(let i=0; i<numCount; i++) {
             const p = textPoints[i % textPoints.length];
@@ -691,7 +749,6 @@
         return points;
     }
 
-    // 3. 点燃状态 (Lit) - 保持原有颜色，火焰效果由Sprite显示
     function generateLitCakeState() {
         const currentPos = particleGeometry.attributes.position.array;
         const currentCols = particleGeometry.attributes.color.array;
@@ -703,7 +760,6 @@
             let x = currentPos[i*3];
             let y = currentPos[i*3+1];
             let z = currentPos[i*3+2];
-            // 保持原有颜色，不再变黄
             let r = currentCols[i*3];
             let g = currentCols[i*3+1];
             let b = currentCols[i*3+2];
@@ -714,10 +770,8 @@
         return { positions: newPos, colors: newCols };
     }
 
-    // --- 交互流程 ---
     document.getElementById('start-screen').addEventListener('click', function() {
         this.style.opacity = '0';
-        // 使用 requestAnimationFrame 确保过渡更平滑
         setTimeout(() => {
             requestAnimationFrame(() => {
                 this.style.display = 'none';
@@ -734,12 +788,10 @@
         for(let i=0; i<sizes.length; i++) sizes[i] = Math.random();
         particleGeometry.attributes.size.needsUpdate = true;
 
-        // 使用预加载的星云数据
         applyShapeImmediate(preloadedNebulaData);
 
         scene.scale.set(0.1, 0.1, 0.1);
         new TWEEN.Tween(scene.scale).to({x:1, y:1, z:1}, 1500).easing(TWEEN.Easing.Elastic.Out).start();
-
 
         stage = 1;
     }
@@ -749,12 +801,10 @@
         if (isTransitioning || stage === 0) return;
 
         if (stage === 1) {
-            // 星云 -> 蛋糕
             isTransitioning = true;
             const cakeData = generateCakeShape();
             transitionParticles(cakeData, 2000);
 
-            // 恢复之前的清晰度（不要缩太小）
             new TWEEN.Tween(particleMaterial.uniforms.uGlobalSize).to({value: 0.8}, 2000).start();
             new TWEEN.Tween(bloomPass).to({strength: 0.8, radius: 0.3}, 2000).start();
 
@@ -765,51 +815,42 @@
             }, 2000);
 
         } else if (stage === 2) {
-            // 点火
             isTransitioning = true;
             const litData = generateLitCakeState();
             transitionParticles(litData, 500);
 
-            // *** 显示火焰图标 (Sprite) - 每个数字一个火焰 ***
             const map = createFlameTexture();
 
-            // 数字 "2" 的火焰 (左边)
             const material1 = new THREE.SpriteMaterial({ map: map, blending: THREE.AdditiveBlending });
             const flame1 = new THREE.Sprite(material1);
-            flame1.position.set(-0.65, 3.3, 0);  // 数字2的顶部
+            flame1.position.set(-0.65, 3.3, 0);
             flame1.scale.set(0, 0, 1);
             scene.add(flame1);
             flameSprites.push(flame1);
 
-            // 数字 "1" 的火焰 (右边)
             const material2 = new THREE.SpriteMaterial({ map: map, blending: THREE.AdditiveBlending });
             const flame2 = new THREE.Sprite(material2);
-            flame2.position.set(0.65, 3.3, 0);   // 数字1的顶部
+            flame2.position.set(0.65, 3.3, 0);
             flame2.scale.set(0, 0, 1);
             scene.add(flame2);
             flameSprites.push(flame2);
 
-            // 火焰弹出的动画 - 较小的尺寸
             flameSprites.forEach((flame, idx) => {
                 new TWEEN.Tween(flame.scale)
                     .to({x: 0.5, y: 0.7, z: 1}, 800)
-                    .delay(idx * 100) // 稍微错开时间
+                    .delay(idx * 100)
                     .easing(TWEEN.Easing.Back.Out)
                     .start();
             });
 
-            // 光晕爆闪
             new TWEEN.Tween(bloomPass).to({ strength: 2.5 }, 200).yoyo(true).repeat(1).to({ strength: 1.2 }, 1000).start();
 
-            // 彩带特效 - 从两侧抛出
             launchConfetti();
 
             const ach = document.getElementById('achievement');
             ach.classList.add('show');
-            // 5秒后隐藏成就并显示奖杯按钮
             setTimeout(() => {
                 ach.classList.remove('show');
-                // 显示奖杯图标
                 const trophyBtn = document.getElementById('trophy-btn');
                 trophyBtn.classList.add('show');
             }, 5000);
@@ -836,21 +877,30 @@
             };
             typeWriter();
         } else if (stage === 4) {
-            // 将留言板缩小为便签
             const msgBoard = document.getElementById('message-board');
             msgBoard.classList.add('sticky-note');
             messageMinimized = true;
+
+            setTimeout(() => {
+                const photoCard = document.getElementById('photo-card');
+                photoCard.classList.add('show');
+            }, 500);
+
             stage = 5;
         } else if (stage === 5 && e.target.closest('#message-board')) {
-            // 点击便签恢复为完整留言板
             const msgBoard = document.getElementById('message-board');
+            const photoCard = document.getElementById('photo-card');
             msgBoard.classList.remove('sticky-note');
+            photoCard.classList.remove('show');
+            photoCard.classList.remove('expanded');
             messageMinimized = false;
             stage = 4;
+        } else if (stage === 5 && e.target.closest('#photo-card')) {
+            const photoCard = document.getElementById('photo-card');
+            photoCard.classList.toggle('expanded');
         }
     }
 
-    // 继续访问按钮功能
     document.getElementById('skip-rotate-btn').addEventListener('click', function() {
         const rotateScreen = document.getElementById('rotate-screen');
         rotateScreen.style.opacity = '0';
@@ -859,7 +909,6 @@
         }, 500);
     });
 
-    // 奖杯按钮点击 - 显示固定的成就框
     let achievementPinned = false;
     document.getElementById('trophy-btn').addEventListener('click', function(e) {
         e.stopPropagation();
@@ -867,7 +916,6 @@
         const trophyBtn = document.getElementById('trophy-btn');
 
         if (!achievementPinned) {
-            // 固定成就框
             ach.classList.add('pinned');
             ach.classList.add('show');
             trophyBtn.classList.remove('show');
@@ -875,7 +923,6 @@
         }
     });
 
-    // 点击固定的成就框可以取消固定
     document.getElementById('achievement').addEventListener('click', function(e) {
         if (achievementPinned) {
             e.stopPropagation();
@@ -889,17 +936,14 @@
         }
     });
 
-    // 礼花喷发函数 - 从屏幕顶部20%位置两侧喷出，抛物线轨迹，一开始快后面慢
     function launchConfetti() {
         const colors = ['#ff1744', '#ff6f00', '#ffd600', '#00e5ff', '#f50057', '#d500f9', '#00e676', '#ffd700', '#ff4081', '#7c4dff'];
         const confettiShapes = ['▮', '●', '◆', '★', '♥', '✦', '■', '▲', '♦'];
-        const startY = window.innerHeight * 0.2; // 顶部20%位置
+        const startY = window.innerHeight * 0.2;
 
-        // 左侧喷发
         for (let i = 0; i < 40; i++) {
             setTimeout(() => createConfettiPiece('left', colors, confettiShapes, startY), i * 12);
         }
-        // 右侧喷发
         for (let i = 0; i < 40; i++) {
             setTimeout(() => createConfettiPiece('right', colors, confettiShapes, startY), i * 12);
         }
@@ -912,7 +956,6 @@
         confetti.style.color = colors[Math.floor(Math.random() * colors.length)];
         confetti.style.fontSize = `${Math.random() * 14 + 10}px`;
 
-        // 起始位置 - 屏幕两侧顶部20%高度处
         if (side === 'left') {
             confetti.style.left = '0px';
         } else {
@@ -920,12 +963,11 @@
         }
         confetti.style.top = `${startY}px`;
 
-        // 抛物线终点参数
         const direction = side === 'left' ? 1 : -1;
-        const endX = (Math.random() * 200 + 100) * direction; // 水平距离
-        const endY = Math.random() * 350 + 250; // 向下落的距离
-        const rotate = (Math.random() * 720 + 360) * direction; // 旋转角度
-        const duration = 2.5 + Math.random() * 1.5; // 动画时长
+        const endX = (Math.random() * 200 + 100) * direction;
+        const endY = Math.random() * 350 + 250;
+        const rotate = (Math.random() * 720 + 360) * direction;
+        const duration = 2.5 + Math.random() * 1.5;
 
         confetti.style.setProperty('--endX', `${endX}px`);
         confetti.style.setProperty('--endY', `${endY}px`);
@@ -934,7 +976,6 @@
 
         document.body.appendChild(confetti);
 
-        // 动画结束后移除
         setTimeout(() => {
             if (confetti.parentNode) {
                 confetti.parentNode.removeChild(confetti);
@@ -988,7 +1029,6 @@
     const mouse = new THREE.Vector2(9999, 9999);
     const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
 
-    // 更新鼠标/触摸位置的通用函数
     function updateMousePosition(clientX, clientY) {
         mouse.x = (clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(clientY / window.innerHeight) * 2 + 1;
@@ -998,12 +1038,10 @@
         particleMaterial.uniforms.uMouse.value.copy(target);
     }
 
-    // 鼠标移动事件
     window.addEventListener('mousemove', (e) => {
         updateMousePosition(e.clientX, e.clientY);
     });
 
-    // 触摸移动事件（手机端）
     window.addEventListener('touchmove', (e) => {
         if (e.touches.length > 0) {
             const touch = e.touches[0];
@@ -1011,7 +1049,6 @@
         }
     }, { passive: true });
 
-    // 触摸结束时重置位置
     window.addEventListener('touchend', () => {
         particleMaterial.uniforms.uMouse.value.set(9999, 9999, 9999);
     });
@@ -1020,7 +1057,6 @@
         requestAnimationFrame(animate);
         TWEEN.update();
         controls.update();
-        // 火焰呼吸效果 - 多个火焰
         flameSprites.forEach((flame, idx) => {
             flame.material.rotation = Math.sin(time*0.005 + idx)*0.15;
             const scaleBase = 0.5;
@@ -1034,10 +1070,8 @@
         composer.render();
     }
 
-    // 预渲染多帧，减少首次显示时的卡顿
     preloadedNebulaData = generateNebulaShape();
 
-    // 预热 WebGL - 渲染几帧
     for(let i = 0; i < 3; i++) {
         composer.render();
     }
@@ -1050,11 +1084,9 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         composer.setSize(window.innerWidth, window.innerHeight);
 
-        // 根据屏幕比例动态调整相机位置
         const isPortrait = window.innerHeight > window.innerWidth;
         camera.position.z = isPortrait ? 32 : 19;
     });
 </script>
 </body>
 </html>
-
