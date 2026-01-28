@@ -355,22 +355,45 @@
             opacity: 1;
         }
 
-        #photo-card.expanded {
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%) rotate(0deg) !important;
-            height: auto;
-            padding: 12px 12px 35px 12px; /* 底部留白像拍立得 */
-            background: #fff;
-            box-shadow: 5px 5px 15px rgba(0,0,0,0.4);
+#photo-card.expanded {
+        /* 1. 强制显示和不透明 (修复消失的问题) */
+        display: block !important;
+        opacity: 1 !important;
 
-            opacity: 0;
-            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-            pointer-events: auto;
-            display: none;
-            cursor: pointer;
-            z-index: 8; /* 默认在便签下面 */
-        }
+        /* 2. 居中定位 (覆盖原本的歪斜位置) */
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) rotate(0deg) !important;
+
+        /* 3. 容器尺寸自适应 (覆盖 clamp 限制) */
+        width: auto !important;
+        height: auto !important;
+        max-width: 95vw !important; /* 手机上留一点边距 */
+        max-height: 85vh !important;
+
+        padding: 10px !important;
+        background: #fff !important;
+        border-radius: 8px !important;
+
+        /* 4. 确保层级最高，盖住便签和画布 */
+        z-index: 9999 !important;
+        cursor: zoom-out; /* 鼠标变成缩小图标 */
+        box-shadow: 0 0 0 1000px rgba(0,0,0,0.7) !important; /* 加个黑色背景遮罩，突出照片 */
+    }
+
+    #photo-card.expanded img {
+        /* 5. 图片尺寸逻辑 (覆盖 clamp 高度) */
+        display: block !important;
+        width: auto !important;
+        height: auto !important;
+
+        /* 限制最大宽高，防止撑破屏幕 */
+        max-width: 100% !important;
+        max-height: 75vh !important;
+
+        border-radius: 4px !important;
+        box-shadow: none !important; /* 放大时去掉图片阴影，用容器阴影 */
+    }
 
 
         /* 修改原有的图片样式 */
